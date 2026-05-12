@@ -1,0 +1,325 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<nav class="breadcrumb mb-3" aria-label="breadcrumb">
+    <a href="{% url 'categories' %}">Категории</a>
+    {% for category in category_chain %}
+        <span>&gt;</span>
+        <a href="{% url 'category_detail' category.id_category %}">{{ category.category_name }}</a>
+    {% endfor %}
+    <span>&gt;</span>
+    <span>{{ product.product_name }}</span>
+</nav>
+
+<div class="product-detail-container card border-0 shadow-sm">
+    <div class="product-detail-left">
+        <div class="product-detail-image">
+            {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.product_name }}">
+            {% else %}
+                <div class="no-image">Нет изображения</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="product-detail-right">
+        <h1 class="product-detail-title">{{ product.product_name }}</h1>
+        {% if can_manage_product %}
+            <button type="button" class="manager-edit-toggle" id="manager-edit-toggle" aria-label="Редактировать товар">
+                <i class="fas fa-pen"></i>
+            </button>
+            <form method="post" action="{% url 'manager_update_product' product.id_product %}" class="manager-inline-edit" id="manager-inline-edit">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update">
+                <div class="manager-inline-grid">
+                    <input type="text" name="product_name" value="{{ product.product_name }}" placeholder="Название товара" required>
+                    <select name="category_id" required>
+                        {% for category in all_categories %}
+                            <option value="{{ category.id_category }}" {% if product.id_category.id_category == category.id_category %}selected{% endif %}>
+                                {{ category.category_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" min="0" name="price" value="{{ product.price }}" placeholder="Цена" required>
+                    <input type="number" min="0" name="stock_quantity" value="{{ product.stock_quantity }}" placeholder="Остаток" required>
+                    <input type="text" name="image_url" value="{{ product.image_url }}" placeholder="Ссылка на изображение">
+                    <input type="text" name="description" value="{{ product.description }}" placeholder="Краткое описание">
+                </div>
+                <div id="product-dynamic-attributes" class="manager-dynamic-attributes"></div>
+                <div class="manager-inline-actions">
+                    <button type="submit" class="button-primary manager-inline-save">Сохранить</button>
+                    <button type="submit" name="action" value="delete" class="btn btn-outline-danger js-confirm-action" data-confirm="Удалить товар? Это действие нельзя отменить.">Удалить товар</button>
+                </div>
+            </form>
+        {% endif %}
+        
+        <div class="product-rating">
+            {% if rounded_rating %}
+                <div class="stars">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= rounded_rating %}
+                            <span class="star-filled">★</span>
+                        {% else %}
+                            <span class="star-empty">☆</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <span class="rating-count">{{ avg_rating_display }} · {{ reviews_label }}</span>
+            {% else %}
+                <div class="stars">☆☆☆☆☆</div>
+                <span class="rating-count">Нет отзывов</span>
+            {% endif %}
+        </div>
+
+        <div class="product-price-section">
+            <span class="product-price-value">{{ product.price }} ₽</span>
+            {% if product.stock_quantity > 0 %}
+                <span class="in-stock">✓ В наличии</span>
+            {% else %}
+                <span class="out-stock">Нет в наличии</span>
+            {% endif %}
+        </div>
+
+        <div class="product-actions">
+            {% if product.stock_quantity > 0 %}
+                <form method="post" action="{% url 'buy_now' product.id_product %}">
+                    {% csrf_token %}
+                    <button type="submit" class="button-primary">КУПИТЬ СЕЙЧАС</button>
+                </form>
+                {% if product_cart_quantity > 0 %}
+                    <div class="quantity-control">
+                        <form method="post" action="{% url 'update_cart_item' product.id_product %}" class="quantity-control-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="decrease">
+                            <input type="hidden" name="next" value="{% url 'product_detail' product.id_product %}">
+                            <button type="submit" class="quantity-btn">−</button>
+                        </form>
+                        <span class="quantity-value">{{ product_cart_quantity }}</span>
+                        <form method="post" action="{% url 'update_cart_item' product.id_product %}" class="quantity-control-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="increase">
+                            <input type="hidden" name="next" value="{% url 'product_detail' product.id_product %}">
+                            <button
+                                type="submit"
+                                class="quantity-btn quantity-btn-plus {% if product_cart_quantity >= product.stock_quantity %}quantity-btn-disabled{% endif %}"
+                                {% if product_cart_quantity >= product.stock_quantity %}disabled{% endif %}
+                            >
+                                +
+                            </button>
+                        </form>
+                    </div>
+                {% else %}
+                    <form method="post" action="{% url 'add_to_cart' product.id_product %}" class="add-to-cart-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{% url 'product_detail' product.id_product %}">
+                        <button type="submit" class="btn-to-cart">В КОРЗИНУ</button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <button type="button" class="button-primary btn-to-cart-disabled" disabled>НЕТ В НАЛИЧИИ</button>
+            {% endif %}
+        </div>
+
+        {% if product.description %}
+        <div class="product-characteristics">
+            <h3>ОПИСАНИЕ</h3>
+            <p>{{ product.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<section class="reviews-section card border-0 shadow-sm">
+    <div class="reviews-header">
+        <h2>Отзывы</h2>
+        {% if can_leave_review %}
+            <span class="link-write-review">ОСТАВЬТЕ ОТЗЫВ</span>
+        {% endif %}
+    </div>
+    
+    {% if reviews %}
+        <div class="reviews-list">
+            {% for review in reviews %}
+                <div class="review-item">
+                    <div class="review-header">
+                        <span class="review-author">
+                            {% if review.id_user.first_name %}
+                                {{ review.id_user.first_name }} {{ review.id_user.last_name }}
+                            {% else %}
+                                Аноним
+                            {% endif %}
+                        </span>
+                        <span class="review-date">{{ review.review_date|date:"d.m.Y" }}</span>
+                    </div>
+                    
+                    <div class="review-rating">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= review.rating %}
+                                <span class="star-filled">★</span>
+                            {% else %}
+                                <span class="star-empty">☆</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    {% if review.comment %}
+                        <p class="review-text">{{ review.comment }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="review-empty">Пока нет отзывов. Будьте первым!</p>
+    {% endif %}
+    
+    {% if can_leave_review %}
+        <form method="post" action="{% url 'add_review' product.id_product %}" class="review-form">
+            {% csrf_token %}
+            <div class="review-form-row">
+                <label for="review-rating">Оценка</label>
+                <div class="star-input" id="review-rating">
+                    <input type="radio" id="rate-5" name="rating" value="5" required>
+                    <label for="rate-5" title="5">★</label>
+                    <input type="radio" id="rate-4" name="rating" value="4">
+                    <label for="rate-4" title="4">★</label>
+                    <input type="radio" id="rate-3" name="rating" value="3">
+                    <label for="rate-3" title="3">★</label>
+                    <input type="radio" id="rate-2" name="rating" value="2">
+                    <label for="rate-2" title="2">★</label>
+                    <input type="radio" id="rate-1" name="rating" value="1">
+                    <label for="rate-1" title="1">★</label>
+                </div>
+            </div>
+            <div class="review-form-row">
+                <label class="form-label mb-1" for="review-comment">Комментарий</label>
+                <textarea class="form-control" id="review-comment" name="comment" rows="4" placeholder="Поделитесь впечатлениями о товаре"></textarea>
+            </div>
+            <button type="submit" class="button-primary review-submit btn btn-primary">Добавить отзыв</button>
+        </form>
+    {% else %}
+        <p class="review-rule-note">
+            {% if not current_user %}
+                Чтобы оставить отзыв, войдите в аккаунт.
+            {% endif %}
+        </p>
+    {% endif %}
+
+    {% if reviews|length > 3 %}
+        <div class="reviews-footer">
+            <a href="#" class="link-show-all">ПОКАЗАТЬ ВСЕ ОТЗЫВЫ</a>
+        </div>
+    {% endif %}
+</section>
+{% if can_manage_product %}
+{{ category_attribute_config|json_script:"product-category-attribute-config" }}
+{{ product_attribute_values|json_script:"product-attribute-values" }}
+<script>
+    (function () {
+        const toggle = document.getElementById('manager-edit-toggle');
+        const form = document.getElementById('manager-inline-edit');
+        const categorySelect = form ? form.querySelector('select[name="category_id"]') : null;
+        const attributesContainer = document.getElementById('product-dynamic-attributes');
+        const configNode = document.getElementById('product-category-attribute-config');
+        const valuesNode = document.getElementById('product-attribute-values');
+        const config = configNode ? JSON.parse(configNode.textContent || '{}') : {};
+        const values = valuesNode ? JSON.parse(valuesNode.textContent || '{}') : {};
+        if (!toggle || !form) return;
+
+        function renderAttributes() {
+            if (!categorySelect || !attributesContainer) return;
+            const categoryId = categorySelect.value;
+            const attributes = config[categoryId] || [];
+            attributesContainer.innerHTML = '';
+            if (!attributes.length) return;
+
+            attributes.forEach((attr) => {
+                const existing = values[String(attr.id)] || {};
+                const wrapper = document.createElement('div');
+                wrapper.className = 'manager-attr-row';
+                const label = document.createElement('label');
+                label.textContent = attr.name + (attr.unit ? ` (${attr.unit})` : '');
+                wrapper.appendChild(label);
+
+                if (attr.value_type === 'enum') {
+                    const select = document.createElement('select');
+                    select.name = `attr_${attr.id}`;
+                    select.className = 'form-select';
+                    const empty = document.createElement('option');
+                    empty.value = '';
+                    empty.textContent = 'Выберите значение';
+                    select.appendChild(empty);
+                    (attr.options || []).forEach((opt) => {
+                        const option = document.createElement('option');
+                        option.value = String(opt.id);
+                        option.textContent = opt.value;
+                        if (String(existing.option_id || '') === String(opt.id)) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                    const addNew = document.createElement('option');
+                    addNew.value = '__new__';
+                    addNew.textContent = 'Добавить новое значение';
+                    select.appendChild(addNew);
+                    const inputNew = document.createElement('input');
+                    inputNew.type = 'text';
+                    inputNew.name = `attr_new_${attr.id}`;
+                    inputNew.className = 'form-control';
+                    inputNew.placeholder = 'Новое значение';
+                    inputNew.style.display = 'none';
+                    select.addEventListener('change', () => {
+                        inputNew.style.display = select.value === '__new__' ? '' : 'none';
+                    });
+                    wrapper.appendChild(select);
+                    wrapper.appendChild(inputNew);
+                } else if (attr.value_type === 'number') {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.step = '0.01';
+                    input.className = 'form-control';
+                    input.name = `attr_${attr.id}`;
+                    if (existing.value_number !== undefined && existing.value_number !== null && existing.value_number !== '') {
+                        input.value = existing.value_number;
+                    }
+                    wrapper.appendChild(input);
+                } else if (attr.value_type === 'boolean') {
+                    const select = document.createElement('select');
+                    select.name = `attr_${attr.id}`;
+                    select.className = 'form-select';
+                    select.innerHTML = '<option value="">Не выбрано</option><option value="1">Да</option><option value="0">Нет</option>';
+                    if (existing.value_boolean === '1' || existing.value_boolean === '0') {
+                        select.value = existing.value_boolean;
+                    }
+                    wrapper.appendChild(select);
+                } else {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'form-control';
+                    input.name = `attr_${attr.id}`;
+                    input.value = existing.value_string || '';
+                    wrapper.appendChild(input);
+                }
+                attributesContainer.appendChild(wrapper);
+            });
+        }
+
+        toggle.addEventListener('click', function () {
+            form.classList.toggle('is-open');
+        });
+        if (categorySelect) {
+            categorySelect.addEventListener('change', renderAttributes);
+        }
+        renderAttributes();
+
+        document.querySelectorAll('.js-confirm-action').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                const text = button.dataset.confirm || 'Подтвердить действие?';
+                if (!window.confirm(text)) {
+                    event.preventDefault();
+                }
+            });
+        });
+    })();
+</script>
+{% endif %}
+{% endblock %}

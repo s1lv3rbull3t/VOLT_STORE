@@ -1,0 +1,26 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<section class="section categories-page">
+    <div class="section-header">
+        <h1 class="section-title">КАТЕГОРИИ</h1>
+    </div>
+
+    <div class="categories-grid">
+        {% for category in categories %}
+            <a href="{% url 'category_detail' category.id_category %}" class="category-card">
+                <div class="category-card-image">
+                    <img src="{{ category.card_image }}" alt="{{ category.category_name }}">
+                </div>
+                <div class="category-card-info">
+                    <h3>{{ category.category_name }}</h3>
+                    <p>Откройте подборку лучших товаров.</p>
+                    <span class="category-link">В раздел →</span>
+                </div>
+            </a>
+        {% empty %}
+            <p>Категорий пока нет.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

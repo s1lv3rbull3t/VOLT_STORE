@@ -1,0 +1,5 @@
+{% if href %}
+<a href="{{ href }}" class="button-primary btn btn-primary {{ extra_classes|default:'' }}">{{ text }}</a>
+{% else %}
+<button type="{{ button_type|default:'button' }}" class="button-primary btn btn-primary {{ extra_classes|default:'' }}">{{ text }}</button>
+{% endif %}

@@ -1,0 +1,141 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="checkout-page py-2 py-md-4">
+    <div class="page-heading mb-4">
+        <h1>Оформление заказа</h1>
+    </div>
+    <form method="post" class="checkout-layout row g-4 align-items-start">
+        {% csrf_token %}
+        <div class="checkout-form col-12 col-lg-7">
+            <section class="checkout-section card border-0 shadow-sm">
+                <div class="checkout-section-title">
+                    <span class="checkout-step">01</span>
+                    <h2>Способ получения</h2>
+                </div>
+                <div class="delivery-options">
+                    <label class="delivery-card {% if selected_delivery == 'delivery' %}is-active{% endif %}">
+                        <input type="radio" name="delivery_method" value="delivery" {% if selected_delivery == 'delivery' %}checked{% endif %}>
+                        <span class="delivery-name">Доставка</span>
+                        <span class="delivery-note">Курьером до двери</span>
+                    </label>
+                    <label class="delivery-card {% if selected_delivery == 'pickup' %}is-active{% endif %}">
+                        <input type="radio" name="delivery_method" value="pickup" {% if selected_delivery == 'pickup' %}checked{% endif %}>
+                        <span class="delivery-name">Самовывоз</span>
+                        <span class="delivery-note">Из пункта выдачи</span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="checkout-section checkout-address-section card border-0 shadow-sm {% if selected_delivery == 'pickup' %}is-hidden{% endif %}" id="checkout-address-section">
+                <div class="checkout-section-title">
+                    <span class="checkout-step">02</span>
+                    <h2>Адрес доставки</h2>
+                </div>
+
+                <div class="checkout-fields-grid">
+                    <div class="checkout-field">
+                        <label class="form-label mb-1" for="city">Город</label>
+                        <input class="form-control" id="city" name="city" type="text" value="{{ form_city }}" placeholder="Пермь">
+                    </div>
+                    <div class="checkout-field">
+                        <label class="form-label mb-1" for="street">Улица и дом</label>
+                        <input class="form-control" id="street" name="street" type="text" value="{{ form_street }}" placeholder="Бульвар Гагарина 37">
+                    </div>
+                    <div class="checkout-field">
+                        <label class="form-label mb-1" for="apartment">Квартира / офис</label>
+                        <input class="form-control" id="apartment" name="apartment" type="text" value="{{ form_apartment }}" placeholder="323">
+                    </div>
+                </div>
+            </section>
+
+            <section class="checkout-section card border-0 shadow-sm">
+                <div class="checkout-section-title">
+                    <span class="checkout-step">03</span>
+                    <h2>Способ оплаты</h2>
+                </div>
+                <div class="payment-list">
+                    <label class="payment-row">
+                        <input type="radio" name="payment_method" value="card" {% if selected_payment == 'card' %}checked{% endif %}>
+                        <span>Банковской картой онлайн</span>
+                    </label>
+                    <label class="payment-row">
+                        <input type="radio" name="payment_method" value="sbp" {% if selected_payment == 'sbp' %}checked{% endif %}>
+                        <span>СБП</span>
+                    </label>
+                    <label class="payment-row">
+                        <input type="radio" name="payment_method" value="cash" {% if selected_payment == 'cash' %}checked{% endif %}>
+                        <span>При получении</span>
+                    </label>
+                </div>
+            </section>
+        </div>
+
+        <aside class="checkout-summary col-12 col-lg-5">
+            <div class="checkout-summary-card card border-0 shadow-sm">
+                <h2>Ваш заказ</h2>
+                <div class="checkout-products-list">
+                    {% for item in cart_items %}
+                        <div class="checkout-product">
+                            <div class="checkout-product-image">
+                                {% if item.id_product.image_url %}
+                                    <img src="{{ item.id_product.image_url }}" alt="{{ item.id_product.product_name }}">
+                                {% else %}
+                                    <div class="no-image">Нет фото</div>
+                                {% endif %}
+                            </div>
+                            <div class="checkout-product-info">
+                                <span class="checkout-product-category">{{ item.id_product.id_category.category_name }}</span>
+                                <strong>{{ item.id_product.product_name }}</strong>
+                                <span>{{ item.quantity }} × {{ item.id_product.price }} ₽</span>
+                            </div>
+                            <div class="checkout-product-total">{{ item.item_total }} ₽</div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="checkout-summary-divider"></div>
+                <div class="checkout-summary-row">
+                    <span>Товары ({{ cart_item_count }})</span>
+                    <span>{{ total_cost }} ₽</span>
+                </div>
+                <div class="checkout-summary-row">
+                    <span>Доставка</span>
+                    <span class="text-primary">Бесплатно</span>
+                </div>
+                <div class="checkout-summary-total">
+                    <span>Итого</span>
+                    <strong>{{ total_cost }} ₽</strong>
+                </div>
+                <button type="submit" class="button-primary checkout-submit btn btn-primary w-100">Подтвердить заказ</button>
+            </div>
+        </aside>
+    </form>
+</div>
+<script>
+    (function () {
+        const addressSection = document.getElementById('checkout-address-section');
+        const deliveryInputs = document.querySelectorAll('input[name="delivery_method"]');
+        const deliveryCards = document.querySelectorAll('.delivery-card');
+        if (!addressSection || !deliveryInputs.length) return;
+
+        function syncAddressVisibility() {
+            const selected = document.querySelector('input[name="delivery_method"]:checked');
+            const isPickup = selected && selected.value === 'pickup';
+            addressSection.classList.toggle('is-hidden', !!isPickup);
+
+            deliveryCards.forEach((card) => card.classList.remove('is-active'));
+            if (selected) {
+                const selectedCard = selected.closest('.delivery-card');
+                if (selectedCard) {
+                    selectedCard.classList.add('is-active');
+                }
+            }
+        }
+
+        deliveryInputs.forEach((input) => {
+            input.addEventListener('change', syncAddressVisibility);
+        });
+        syncAddressVisibility();
+    })();
+</script>
+{% endblock %}

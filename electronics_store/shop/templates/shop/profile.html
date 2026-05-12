@@ -1,0 +1,160 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="auth-page container py-4">
+    <div class="auth-card profile-card card border-0 shadow-sm mx-auto">
+        <div class="card-body p-4 p-md-5">
+        <h1 class="text-center">ПРОФИЛЬ</h1>
+        {% if current_user %}
+            <div class="profile-edit-grid">
+                <form method="post" action="{% url 'profile_update_field' %}" class="profile-edit-item">
+                    {% csrf_token %}
+                    <input type="hidden" name="field" value="first_name">
+                    <label class="form-label mb-1" for="profile-first-name">Имя</label>
+                    <div class="profile-edit-control">
+                        <input class="form-control" id="profile-first-name" type="text" name="value" value="{{ current_user.first_name }}" readonly required>
+                        <button type="button" class="profile-edit-toggle" aria-label="Редактировать имя">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button type="submit" class="profile-edit-save">Сохранить</button>
+                        <button type="button" class="profile-edit-cancel">Отмена</button>
+                    </div>
+                </form>
+
+                <form method="post" action="{% url 'profile_update_field' %}" class="profile-edit-item">
+                    {% csrf_token %}
+                    <input type="hidden" name="field" value="last_name">
+                    <label class="form-label mb-1" for="profile-last-name">Фамилия</label>
+                    <div class="profile-edit-control">
+                        <input class="form-control" id="profile-last-name" type="text" name="value" value="{{ current_user.last_name }}" readonly required>
+                        <button type="button" class="profile-edit-toggle" aria-label="Редактировать фамилию">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button type="submit" class="profile-edit-save">Сохранить</button>
+                        <button type="button" class="profile-edit-cancel">Отмена</button>
+                    </div>
+                </form>
+
+                <form method="post" action="{% url 'profile_update_field' %}" class="profile-edit-item">
+                    {% csrf_token %}
+                    <input type="hidden" name="field" value="email">
+                    <label class="form-label mb-1" for="profile-email">Email</label>
+                    <div class="profile-edit-control">
+                        <input class="form-control" id="profile-email" type="email" name="value" value="{{ current_user.email }}" readonly required>
+                        <button type="button" class="profile-edit-toggle" aria-label="Редактировать email">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button type="submit" class="profile-edit-save">Сохранить</button>
+                        <button type="button" class="profile-edit-cancel">Отмена</button>
+                    </div>
+                    <p class="profile-edit-note">После изменения email придет ссылка для подтверждения на новый адрес.</p>
+                </form>
+
+                <form method="post" action="{% url 'profile_update_field' %}" class="profile-edit-item">
+                    {% csrf_token %}
+                    <input type="hidden" name="field" value="phone_number">
+                    <label class="form-label mb-1" for="profile-phone">Телефон</label>
+                    <div class="profile-edit-control">
+                        <input class="form-control" id="profile-phone" type="text" name="value" value="{{ current_user.phone_number|default:'' }}" readonly placeholder="79991234567">
+                        <button type="button" class="profile-edit-toggle" aria-label="Редактировать телефон">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button type="submit" class="profile-edit-save">Сохранить</button>
+                        <button type="button" class="profile-edit-cancel">Отмена</button>
+                    </div>
+                </form>
+            </div>
+
+            <button type="button" class="profile-history-toggle" id="profile-history-toggle" aria-expanded="false">
+                Показать историю покупок
+            </button>
+
+            <section class="profile-orders" id="profile-orders">
+                <h2>История покупок</h2>
+                {% if orders %}
+                    <div class="profile-orders-list">
+                        {% for order in orders %}
+                            <article class="profile-order-card">
+                                <div class="profile-order-head">
+                                    <div>
+                                        <strong>Заказ №{{ order.id_order }}</strong>
+                                        <p>{{ order.order_date|date:"d.m.Y H:i" }}</p>
+                                    </div>
+                                    <span class="profile-order-status">{{ order.id_status.status_name }}</span>
+                                </div>
+                                <div class="profile-order-items">
+                                    {% for row in order.rows %}
+                                        <div class="profile-order-item">
+                                            {% if row.product %}
+                                                <a href="{% url 'product_detail' row.product.id_product %}" class="profile-order-link">{{ row.product_name }}</a>
+                                            {% else %}
+                                                <span>{{ row.product_name }}</span>
+                                            {% endif %}
+                                            <span>{{ row.item.quantity }} × {{ row.product_price }} ₽</span>
+                                            <strong>{{ row.line_total }} ₽</strong>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="profile-order-foot">
+                                    <span>Сумма заказа</span>
+                                    <strong>{{ order.total_cost }} ₽</strong>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="profile-orders-empty">Пока нет заказов. Добавьте товары в корзину и оформите первую покупку.</p>
+                {% endif %}
+            </section>
+
+            <div class="profile-actions">
+                <a href="{% url 'logout' %}" class="button-primary btn btn-primary js-logout-link" style="display:inline-block; text-decoration:none;">Выйти</a>
+            </div>
+        {% endif %}
+        </div>
+    </div>
+</div>
+<script>
+    (function () {
+        const editForms = document.querySelectorAll('.profile-edit-item');
+        editForms.forEach(function (form) {
+            const input = form.querySelector('input[name="value"]');
+            const toggle = form.querySelector('.profile-edit-toggle');
+            const save = form.querySelector('.profile-edit-save');
+            const cancel = form.querySelector('.profile-edit-cancel');
+            if (!input || !toggle || !save || !cancel) return;
+
+            const initialValue = input.value;
+
+            function setEditingState(isEditing) {
+                form.classList.toggle('is-editing', isEditing);
+                input.readOnly = !isEditing;
+                if (!isEditing) {
+                    input.value = initialValue;
+                }
+            }
+
+            toggle.addEventListener('click', function () {
+                form.classList.add('is-editing');
+                input.readOnly = false;
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+            });
+
+            cancel.addEventListener('click', function () {
+                setEditingState(false);
+            });
+        });
+
+        const toggle = document.getElementById('profile-history-toggle');
+        const orders = document.getElementById('profile-orders');
+        if (!toggle || !orders) return;
+
+        toggle.addEventListener('click', function () {
+            const isOpen = orders.classList.toggle('is-open');
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            toggle.textContent = isOpen ? 'Скрыть историю покупок' : 'Показать историю покупок';
+        });
+    })();
+</script>
+{% endblock %}

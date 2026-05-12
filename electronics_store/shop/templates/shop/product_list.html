@@ -1,0 +1,64 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+
+{% if not search_query %}
+    <h2 class="mt-0">Популярные категории</h2>
+    <div class="cat-list">
+        {% for category in categories|slice:":6" %}
+            <a href="{% url 'category_detail' category.id_category %}" class="cat-card">
+                <strong>{{ category.category_name }}</strong>
+            </a>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if search_query %}
+    <h2 class="mt-4">Результаты поиска: "{{ search_query }}"</h2>
+    <form method="get" action="{% url 'product_list' %}" class="search-price-filter card border-0 shadow-sm p-3 mb-3 d-flex flex-row flex-nowrap align-items-end gap-2">
+        <input type="hidden" name="q" value="{{ search_query }}">
+        <div class="filter-field d-flex flex-row align-items-center gap-2">
+            <label class="form-label mb-0" for="min-price">Цена от</label>
+            <input class="form-control" id="min-price" type="number" min="0" name="min_price" value="{{ min_price }}" placeholder="{{ search_min_price }}">
+        </div>
+        <div class="filter-field d-flex flex-row align-items-center gap-2">
+            <label class="form-label mb-0" for="max-price">до</label>
+            <input class="form-control" id="max-price" type="number" min="0" name="max_price" value="{{ max_price }}" placeholder="{{ search_max_price }}">
+        </div>
+        <button type="submit" class="button-primary">Применить</button>
+    </form>
+{% else %}
+    <h2 class="mt-4">Все товары</h2>
+{% endif %}
+
+{% if products %}
+    <div class="products-grid">
+        {% for product in products %}
+            <a href="{% url 'product_detail' product.id_product %}" class="product-card-link">
+                <div class="product-card">
+                    <div class="product-image">
+                        {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="{{ product.product_name }}">
+                        {% else %}
+                            <div class="no-image">Нет фото</div>
+                        {% endif %}
+                    </div>
+                    {% if product.id_category %}
+                        <div class="product-cat-label">{{ product.id_category.category_name }}</div>
+                    {% endif %}
+                    <h3 class="product-name">{{ product.product_name }}</h3>
+                    <p class="product-price">{{ product.price }} ₽</p>
+                    <div class="btn-buy">КУПИТЬ</div>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+{% else %}
+    {% if search_query or request.GET.min_price or request.GET.max_price %}
+        <div class="alert alert-info empty-cart" role="alert">По вашему запросу товары не найдены.</div>
+    {% else %}
+        <div class="alert alert-info empty-cart" role="alert">Товаров пока нет.</div>
+    {% endif %}
+{% endif %}
+
+{% endblock %}

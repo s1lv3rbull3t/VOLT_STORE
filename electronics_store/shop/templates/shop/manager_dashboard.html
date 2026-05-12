@@ -1,0 +1,528 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="manager-page container py-2 py-md-4">
+    <div class="manager-header">
+        <h1>Панель администратора</h1>
+        <p>Управление заказами, каталогом и аналитикой</p>
+    </div>
+
+    <div class="manager-tabs nav nav-pills">
+        <a href="{% url 'manager_dashboard' %}?tab=orders" class="manager-tab {% if tab == 'orders' %}is-active{% endif %}">Заказы</a>
+        <a href="{% url 'manager_dashboard' %}?tab=catalog" class="manager-tab {% if tab == 'catalog' %}is-active{% endif %}">Каталог</a>
+        <a href="{% url 'manager_dashboard' %}?tab=analytics" class="manager-tab {% if tab == 'analytics' %}is-active{% endif %}">Аналитика</a>
+        <a href="{% url 'manager_dashboard' %}?tab=users" class="manager-tab {% if tab == 'users' %}is-active{% endif %}">Пользователи</a>
+        <a href="{% url 'manager_dashboard' %}?tab=categories" class="manager-tab {% if tab == 'categories' %}is-active{% endif %}">Категории</a>
+        <a href="{% url 'manager_dashboard' %}?tab=reviews" class="manager-tab {% if tab == 'reviews' %}is-active{% endif %}">Отзывы</a>
+    </div>
+
+    {% if tab == 'orders' %}
+        <div class="manager-panel card border-0 shadow-sm">
+            <h2>Актуальные заказы</h2>
+            <div class="manager-orders">
+                {% for order in active_orders %}
+                    <div class="manager-order-card">
+                        <div class="manager-order-top">
+                            <div>
+                                <strong>Заказ #{{ order.id_order }}</strong>
+                                <p>
+                                    {{ order.id_user.first_name }} {{ order.id_user.last_name }} ·
+                                    {{ order.id_user.email }}
+                                </p>
+                            </div>
+                            <span class="manager-order-total">{{ order.total_cost }} ₽</span>
+                        </div>
+                        <p class="manager-order-address">
+                            {{ order.id_address.id_city.city_name }}, {{ order.id_address.street }}{% if order.id_address.apartment %}, {{ order.id_address.apartment }}{% endif %}
+                        </p>
+                        <p class="manager-order-date">Дата: {{ order.order_date|date:"d.m.Y H:i" }}</p>
+                        <div class="manager-order-items">
+                            {% for item in order.orderitem_set.all %}
+                                <span>{{ item.id_product.product_name }} × {{ item.quantity }}</span>
+                            {% empty %}
+                                <span>Состав заказа не найден</span>
+                            {% endfor %}
+                        </div>
+                        <form method="post" action="{% url 'manager_dashboard' %}?tab=orders" class="manager-status-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_order_status">
+                            <input type="hidden" name="order_id" value="{{ order.id_order }}">
+                            <select class="form-select" name="status_id">
+                                {% for status in statuses %}
+                                    <option value="{{ status.id_status }}" {% if order.id_status.id_status == status.id_status %}selected{% endif %}>
+                                        {{ status.status_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="button-primary btn btn-primary">Сохранить статус</button>
+                        </form>
+                    </div>
+                {% empty %}
+                    <p class="manager-empty">Актуальных заказов пока нет.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="manager-panel card border-0 shadow-sm">
+            <h2>Доставленные заказы</h2>
+            <div class="manager-orders">
+                {% for order in delivered_orders %}
+                    <div class="manager-order-card">
+                        <div class="manager-order-top">
+                            <div>
+                                <strong>Заказ #{{ order.id_order }}</strong>
+                                <p>
+                                    {{ order.id_user.first_name }} {{ order.id_user.last_name }} ·
+                                    {{ order.id_user.email }}
+                                </p>
+                            </div>
+                            <span class="manager-order-total">{{ order.total_cost }} ₽</span>
+                        </div>
+                        <p class="manager-order-address">
+                            {{ order.id_address.id_city.city_name }}, {{ order.id_address.street }}{% if order.id_address.apartment %}, {{ order.id_address.apartment }}{% endif %}
+                        </p>
+                        <p class="manager-order-date">Дата: {{ order.order_date|date:"d.m.Y H:i" }}</p>
+                        <div class="manager-order-items">
+                            {% for item in order.orderitem_set.all %}
+                                <span>{{ item.id_product.product_name }} × {{ item.quantity }}</span>
+                            {% empty %}
+                                <span>Состав заказа не найден</span>
+                            {% endfor %}
+                        </div>
+                        <form method="post" action="{% url 'manager_dashboard' %}?tab=orders" class="manager-status-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_order_status">
+                            <input type="hidden" name="order_id" value="{{ order.id_order }}">
+                            <select class="form-select" name="status_id">
+                                {% for status in statuses %}
+                                    <option value="{{ status.id_status }}" {% if order.id_status.id_status == status.id_status %}selected{% endif %}>
+                                        {{ status.status_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="button-primary btn btn-primary">Сохранить статус</button>
+                        </form>
+                    </div>
+                {% empty %}
+                    <p class="manager-empty">Доставленных заказов пока нет.</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if tab == 'catalog' %}
+        <div class="manager-panel card border-0 shadow-sm">
+            <h2>Управление каталогом</h2>
+            <form method="post" action="{% url 'manager_dashboard' %}?tab=catalog" class="manager-product-create card border-0 shadow-sm p-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_product">
+                <h3>Добавить товар</h3>
+                <div class="manager-grid-2">
+                    <input class="form-control" type="text" name="product_name" placeholder="Название товара" required>
+                    <select class="form-select" name="category_id" id="manager-product-category" required>
+                        <option value="">Категория</option>
+                        {% for category in leaf_categories %}
+                            <option value="{{ category.id_category }}">{{ category.category_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input class="form-control" type="number" min="0" name="price" placeholder="Цена (₽)" required>
+                    <input class="form-control" type="number" min="0" name="stock_quantity" placeholder="Остаток" required>
+                    <input class="form-control" type="text" name="image_url" placeholder="Ссылка на изображение">
+                    <input class="form-control" type="text" name="description" placeholder="Краткое описание">
+                </div>
+                <div id="dynamic-attributes" class="manager-dynamic-attributes"></div>
+                <button type="submit" class="button-primary btn btn-primary">Добавить товар</button>
+            </form>
+            <p class="manager-note">
+                Редактирование существующих товаров доступно на странице карточки товара через кнопку с иконкой карандаша.
+            </p>
+        </div>
+    {% endif %}
+
+    {% if tab == 'analytics' %}
+        <div class="manager-panel card border-0 shadow-sm">
+            <div class="manager-analytics-header">
+                <h2>Аналитика продаж</h2>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'manager_export_analytics_xlsx' %}" class="button-primary btn btn-primary">Скачать XLSX</a>
+                    <button type="button" id="analytics-import-toggle" class="btn btn-outline-secondary">Импорт XLSX</button>
+                    {% if has_imported_analytics %}
+                        <form method="post" action="{% url 'manager_dashboard' %}?tab=analytics" class="m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="clear_imported_analytics">
+                            <button type="submit" class="btn btn-outline-secondary">Сбросить импорт</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+            <form id="analytics-import-form" method="post" action="{% url 'manager_dashboard' %}?tab=analytics" enctype="multipart/form-data" class="manager-product-create card border-0 shadow-sm p-3 mb-3 d-none">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="import_analytics_xlsx">
+                <h3>Импорт аналитики из XLSX</h3>
+                <input class="form-control" type="file" name="analytics_file" accept=".xlsx" required>
+                <p class="manager-note">
+                    Загружайте файл аналитики, ранее выгруженный кнопкой <strong>Скачать XLSX</strong>
+                    (листы: "Продажи по дням", "Категории", "Топ товаров").
+                </p>
+                <button type="submit" class="btn btn-outline-secondary align-self-start">Загрузить файл</button>
+            </form>
+            <div class="manager-analytics-grid">
+                <div class="manager-chart-card">
+                    <h3>Продажи за последние 30 дней</h3>
+                    <canvas id="salesLineChart" height="220"></canvas>
+                </div>
+                <div class="manager-chart-card">
+                    <h3>Доли продаж по 5 категориям первого уровня</h3>
+                    <canvas id="categoryPieChart" height="220"></canvas>
+                </div>
+            </div>
+            <div class="manager-chart-card">
+                <h3>Топ-10 самых продаваемых товаров</h3>
+                <table class="manager-table table table-striped table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Товар</th>
+                            <th>Количество</th>
+                            <th>Сумма продаж</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in top_products %}
+                            <tr>
+                                <td>{{ item.id_product__product_name }}</td>
+                                <td>{{ item.total_quantity }}</td>
+                                <td>{{ item.total_sales|floatformat:0 }} ₽</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3">Пока нет данных по продажам.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{ daily_labels|json_script:"daily-labels" }}
+        {{ daily_totals|json_script:"daily-totals" }}
+        {{ category_labels|json_script:"category-labels" }}
+        {{ category_totals|json_script:"category-totals" }}
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            (function () {
+                const dailyLabels = JSON.parse(document.getElementById('daily-labels').textContent);
+                const dailyTotals = JSON.parse(document.getElementById('daily-totals').textContent);
+                const categoryLabels = JSON.parse(document.getElementById('category-labels').textContent);
+                const categoryTotals = JSON.parse(document.getElementById('category-totals').textContent);
+                const importToggle = document.getElementById('analytics-import-toggle');
+                const importForm = document.getElementById('analytics-import-form');
+
+                if (importToggle && importForm) {
+                    importToggle.addEventListener('click', function () {
+                        importForm.classList.toggle('d-none');
+                    });
+                }
+
+                const lineCanvas = document.getElementById('salesLineChart');
+                if (lineCanvas && dailyLabels.length) {
+                    new Chart(lineCanvas, {
+                        type: 'line',
+                        data: {
+                            labels: dailyLabels,
+                            datasets: [{
+                                label: 'Выручка, ₽',
+                                data: dailyTotals,
+                                borderColor: '#22AFFC',
+                                backgroundColor: 'rgba(34,175,252,0.18)',
+                                fill: true,
+                                tension: 0.25,
+                                pointRadius: 3,
+                                pointHoverRadius: 5
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { beginAtZero: true }
+                            }
+                        }
+                    });
+                }
+
+                const pieCanvas = document.getElementById('categoryPieChart');
+                if (pieCanvas && categoryLabels.length) {
+                    new Chart(pieCanvas, {
+                        type: 'pie',
+                        data: {
+                            labels: categoryLabels,
+                            datasets: [{
+                                data: categoryTotals,
+                                backgroundColor: ['#2563EB', '#7C3AED', '#EC4899', '#F59E0B', '#10B981']
+                            }]
+                        },
+                        options: { responsive: true }
+                    });
+                }
+            })();
+        </script>
+    {% endif %}
+
+    {% if tab == 'users' %}
+        <div class="manager-panel card border-0 shadow-sm">
+            <h2>Пользователи</h2>
+            <div class="manager-orders">
+                {% for u in admin_users %}
+                    <div class="manager-order-card">
+                        <div class="manager-order-top">
+                            <div>
+                                <strong>#{{ u.id_user }} · {{ u.first_name }} {{ u.last_name }}</strong>
+                                <p>{{ u.email }}</p>
+                            </div>
+                            <span class="manager-order-total">{{ u.get_role_display }}</span>
+                        </div>
+                        <button type="button" class="manager-edit-toggle manager-edit-small js-edit-toggle" aria-label="Редактировать пользователя">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <form method="post" action="{% url 'manager_dashboard' %}?tab=users" class="manager-status-form js-inline-edit-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_user_profile">
+                            <input type="hidden" name="target_user_id" value="{{ u.id_user }}">
+                            <input class="form-control" type="text" name="first_name" value="{{ u.first_name }}" placeholder="Имя" required disabled>
+                            <input class="form-control" type="text" name="last_name" value="{{ u.last_name }}" placeholder="Фамилия" required disabled>
+                            <input class="form-control" type="email" name="email" value="{{ u.email }}" placeholder="Email" required disabled>
+                            <button type="submit" class="button-primary btn btn-primary js-edit-save" hidden>Сохранить данные</button>
+                        </form>
+                        <form method="post" action="{% url 'manager_dashboard' %}?tab=users" class="manager-status-form js-inline-edit-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_user_role">
+                            <input type="hidden" name="target_user_id" value="{{ u.id_user }}">
+                            <select class="form-select" name="new_role" disabled>
+                                <option value="buyer" {% if u.role == 'buyer' %}selected{% endif %}>Покупатель</option>
+                                <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Администратор</option>
+                            </select>
+                            <button type="submit" class="button-primary btn btn-primary js-edit-save" hidden>Сохранить роль</button>
+                        </form>
+                        <form method="post" action="{% url 'manager_dashboard' %}?tab=users" class="manager-status-form js-confirm-form" data-confirm="Удалить пользователя?">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_user">
+                            <input type="hidden" name="target_user_id" value="{{ u.id_user }}">
+                            <button type="submit" class="btn btn-outline-danger">Удалить</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if tab == 'categories' %}
+        <div class="manager-panel card border-0 shadow-sm">
+            <h2>Категории</h2>
+            <form method="post" action="{% url 'manager_dashboard' %}?tab=categories" class="manager-product-create card border-0 shadow-sm p-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_category">
+                <h3>Добавить категорию</h3>
+                <div class="manager-grid-2">
+                    <div>
+                        <label class="form-label mb-1" for="new-category-name">Название категории</label>
+                        <input class="form-control" id="new-category-name" type="text" name="category_name" placeholder="Введите название категории" required>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="new-parent-category">Родительская категория</label>
+                        <select class="form-select" id="new-parent-category" name="parent_category_id">
+                            <option value="">Без родителя (уровень 1)</option>
+                            {% for category in admin_categories %}
+                                <option value="{{ category.id_category }}">{{ category.category_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="button-primary btn btn-primary">Добавить категорию</button>
+            </form>
+            <div class="manager-orders">
+                {% for c in admin_categories %}
+                    <div class="manager-order-card">
+                        <div class="manager-order-top">
+                            <div><strong>#{{ c.id_category }} · {{ c.category_name }}</strong></div>
+                            <span class="manager-order-total">{% if c.id_parent_category %}дочерняя{% else %}корневая{% endif %}</span>
+                        </div>
+                        <button type="button" class="manager-edit-toggle manager-edit-small js-edit-toggle" aria-label="Редактировать категорию">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <form method="post" action="{% url 'manager_dashboard' %}?tab=categories" class="manager-status-form js-inline-edit-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_category_name">
+                            <input type="hidden" name="category_id" value="{{ c.id_category }}">
+                            <input class="form-control" type="text" name="category_name" value="{{ c.category_name }}" required disabled>
+                            <button type="submit" class="button-primary btn btn-primary js-edit-save" hidden>Переименовать</button>
+                        </form>
+                        <form method="post" action="{% url 'manager_dashboard' %}?tab=categories" class="manager-status-form js-confirm-form" data-confirm="Удалить категорию?">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_category">
+                            <input type="hidden" name="category_id" value="{{ c.id_category }}">
+                            <button type="submit" class="btn btn-outline-danger">Удалить</button>
+                        </form>
+                    </div>
+                {% empty %}
+                    <p class="manager-empty">Нет категорий без товаров для отображения.</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if tab == 'reviews' %}
+        <div class="manager-panel card border-0 shadow-sm">
+            <h2>Отзывы</h2>
+            <div class="manager-orders">
+                {% for review in admin_reviews %}
+                    <div class="manager-order-card">
+                        <div class="manager-order-top">
+                            <div>
+                                <strong>#{{ review.review_id }} · {{ review.id_product.product_name }}</strong>
+                                <p>{{ review.id_user.email }} · {{ review.review_date|date:"d.m.Y H:i" }}</p>
+                            </div>
+                            <span class="manager-order-total">{{ review.rating }} / 5</span>
+                        </div>
+                        <p class="manager-order-address">{{ review.comment|default:"Без комментария" }}</p>
+                        <form method="post" action="{% url 'manager_dashboard' %}?tab=reviews" class="manager-status-form js-confirm-form" data-confirm="Удалить отзыв?">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_review">
+                            <input type="hidden" name="review_id" value="{{ review.review_id }}">
+                            <button type="submit" class="btn btn-outline-danger">Удалить</button>
+                        </form>
+                    </div>
+                {% empty %}
+                    <p class="manager-empty">Отзывов пока нет.</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{{ category_attribute_config|json_script:"category-attribute-config" }}
+<script>
+    (function () {
+        const categorySelect = document.getElementById('manager-product-category');
+        const container = document.getElementById('dynamic-attributes');
+        const configNode = document.getElementById('category-attribute-config');
+        const confirmForms = document.querySelectorAll('.js-confirm-form');
+        const config = configNode ? JSON.parse(configNode.textContent || '{}') : {};
+
+        function renderAttributes() {
+            const categoryId = categorySelect.value;
+            const attributes = config[categoryId] || [];
+            container.innerHTML = '';
+            if (!attributes.length) return;
+            const title = document.createElement('h3');
+            title.textContent = 'Характеристики категории';
+            container.appendChild(title);
+
+            attributes.forEach((attr) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'manager-attr-row';
+                const label = document.createElement('label');
+                label.textContent = attr.name + (attr.unit ? ` (${attr.unit})` : '');
+                wrapper.appendChild(label);
+
+                if (attr.value_type === 'enum') {
+                    const select = document.createElement('select');
+                    select.name = `attr_${attr.id}`;
+                    select.className = 'form-select';
+                    const empty = document.createElement('option');
+                    empty.value = '';
+                    empty.textContent = 'Выберите значение';
+                    select.appendChild(empty);
+                    (attr.options || []).forEach((opt) => {
+                        const option = document.createElement('option');
+                        option.value = opt.id;
+                        option.textContent = opt.value;
+                        select.appendChild(option);
+                    });
+                    const addNew = document.createElement('option');
+                    addNew.value = '__new__';
+                    addNew.textContent = 'Добавить новое значение';
+                    select.appendChild(addNew);
+                    const inputNew = document.createElement('input');
+                    inputNew.type = 'text';
+                    inputNew.name = `attr_new_${attr.id}`;
+                    inputNew.className = 'form-control';
+                    inputNew.placeholder = 'Новое значение';
+                    inputNew.style.display = 'none';
+                    select.addEventListener('change', () => {
+                        inputNew.style.display = select.value === '__new__' ? '' : 'none';
+                    });
+                    wrapper.appendChild(select);
+                    wrapper.appendChild(inputNew);
+                } else if (attr.value_type === 'number') {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.step = '0.01';
+                    input.className = 'form-control';
+                    input.name = `attr_${attr.id}`;
+                    wrapper.appendChild(input);
+                } else if (attr.value_type === 'boolean') {
+                    const select = document.createElement('select');
+                    select.name = `attr_${attr.id}`;
+                    select.className = 'form-select';
+                    select.innerHTML = '<option value="">Не выбрано</option><option value="1">Да</option><option value="0">Нет</option>';
+                    wrapper.appendChild(select);
+                } else {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'form-control';
+                    input.name = `attr_${attr.id}`;
+                    wrapper.appendChild(input);
+                }
+                container.appendChild(wrapper);
+            });
+        }
+
+        if (categorySelect && container && configNode) {
+            categorySelect.addEventListener('change', renderAttributes);
+            renderAttributes();
+        }
+
+        confirmForms.forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                const text = form.dataset.confirm || 'Подтвердить действие?';
+                if (!window.confirm(text)) {
+                    event.preventDefault();
+                }
+            });
+        });
+
+        document.querySelectorAll('.js-edit-toggle').forEach((toggleBtn) => {
+            toggleBtn.addEventListener('click', () => {
+                const card = toggleBtn.closest('.manager-order-card');
+                if (!card) return;
+                const forms = card.querySelectorAll('.js-inline-edit-form');
+                forms.forEach((form) => {
+                    const isOpen = form.classList.contains('is-open');
+                    form.classList.toggle('is-open', !isOpen);
+                    const controls = form.querySelectorAll('input, select, textarea');
+                    const saveButtons = form.querySelectorAll('.js-edit-save');
+                    controls.forEach((ctrl) => {
+                        if (ctrl.type !== 'hidden') {
+                            ctrl.disabled = isOpen;
+                        }
+                    });
+                    saveButtons.forEach((btn) => {
+                        btn.hidden = isOpen;
+                    });
+                });
+            });
+        });
+
+        document.querySelectorAll('.js-inline-edit-form').forEach((form) => {
+            form.addEventListener('submit', () => {
+                const saveButtons = form.querySelectorAll('.js-edit-save');
+                saveButtons.forEach((btn) => {
+                    if (btn.hidden) {
+                        btn.hidden = false;
+                    }
+                });
+            });
+        });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="auth-page container py-4">
+    <div class="auth-card card border-0 shadow-sm mx-auto">
+        <div class="card-body p-4 p-md-5">
+        <h1 class="text-center">ВОССТАНОВЛЕНИЕ</h1>
+        <p class="auth-subtitle">Введите ваш email для получения инструкции по сбросу пароля</p>
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            <div class="auth-row">
+                <label class="form-label mb-1">Электронная почта</label>
+                <input class="form-control" type="email" name="email" placeholder="example@mail.ru" required>
+            </div>
+            {% include 'shop/components/button.html' with button_type='submit' text='Восстановить пароль' %}
+        </form>
+        <p class="auth-note">Мы отправим ссылку на сброс пароля, если такой email зарегистрирован.</p>
+        <p class="auth-login"><a href="{% url 'login' %}">← Вернуться к входу</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

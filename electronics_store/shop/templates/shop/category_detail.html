@@ -1,0 +1,136 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<nav class="breadcrumb mb-3" aria-label="breadcrumb">
+    <a href="{% url 'categories' %}">Категории</a>
+    {% for category in category_chain %}
+        <span>&gt;</span>
+        <a href="{% url 'category_detail' category.id_category %}">{{ category.category_name }}</a>
+    {% endfor %}
+</nav>
+
+<section class="section category-detail-page">
+    <div class="category-hero">
+        <div class="category-hero-info">
+            <h1 class="category-detail-title">{{ category.category_name }}</h1>
+            {% if children %}
+                <p class="category-detail-text">Найдите лучшие товары и актуальные модели, специально собранные для этой категории.</p>
+            {% endif %}
+        </div>
+        {% if children %}
+        <div class="category-hero-image {% if category.id_category == 5 %}category-hero-image-audio{% endif %}">
+            <img src="{{ category.card_image }}" alt="{{ category.category_name }}">
+        </div>
+        {% endif %}
+    </div>
+
+    {% if children %}
+    <div class="subcategory-buttons">
+        {% for child in children %}
+            <a href="{% url 'category_detail' child.id_category %}" class="subcategory-card">
+                <div class="subcategory-card-image">
+                    <img src="{{ child.card_image }}" alt="{{ child.category_name }}">
+                </div>
+                <div class="subcategory-card-content">
+                    <h3>{{ child.category_name }}</h3>
+                    <span>Смотреть модели →</span>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="category-catalog-layout">
+        <aside class="category-sidebar">
+            <form method="get" class="search-price-filter category-filters-panel card border-0 shadow-sm p-3 mb-3">
+                <div class="category-filters-layout">
+                    <div class="filter-field category-filter-row">
+                        <label class="form-label mb-0" for="category-min-price">Цена от</label>
+                        <input class="form-control" id="category-min-price" type="number" min="0" name="min_price" value="{{ price_min }}" placeholder="{{ price_bounds_min }}">
+                        <label class="form-label mb-0" for="category-max-price">до</label>
+                        <input class="form-control" id="category-max-price" type="number" min="0" name="max_price" value="{{ price_max }}" placeholder="{{ price_bounds_max }}">
+                    </div>
+                    {% for flt in category_filters %}
+                        {% if flt.value_type == 'enum' %}
+                            <div class="filter-field category-filter-row category-filter-row-stack">
+                                <span class="form-label mb-1">{{ flt.attribute_name }}</span>
+                                <div class="category-filter-options">
+                                    {% for opt in flt.options %}
+                                        <label class="category-enum-option">
+                                            <input type="checkbox" name="{{ flt.param_key }}" value="{{ opt.id }}" {% if opt.selected %}checked{% endif %}>
+                                            <span>{{ opt.value }}</span>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif flt.value_type == 'number' and flt.ui_type == 'discrete_number' %}
+                            <div class="filter-field category-filter-row category-filter-row-stack">
+                                <span class="form-label mb-1">{{ flt.attribute_name }}</span>
+                                <div class="category-filter-options">
+                                    {% for opt in flt.options %}
+                                        <label class="category-enum-option">
+                                            <input type="checkbox" name="{{ flt.param_key }}" value="{{ opt.value }}" {% if opt.selected %}checked{% endif %}>
+                                            <span>{{ opt.value }}</span>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif flt.value_type == 'number' %}
+                            <div class="filter-field category-filter-row category-filter-row-stack">
+                                <span class="form-label mb-1">{{ flt.attribute_name }}</span>
+                                <div class="category-number-range">
+                                    <input class="form-control" type="number" step="0.01" name="{{ flt.min_key }}" value="{{ flt.selected_min }}" placeholder="{{ flt.min_value }}">
+                                    <span>—</span>
+                                    <input class="form-control" type="number" step="0.01" name="{{ flt.max_key }}" value="{{ flt.selected_max }}" placeholder="{{ flt.max_value }}">
+                                </div>
+                            </div>
+                        {% elif flt.value_type == 'boolean' %}
+                            <div class="filter-field category-filter-row category-filter-row-stack">
+                                <label class="form-label mb-1" for="flt-{{ flt.attribute_id }}">{{ flt.attribute_name }}</label>
+                                <select class="form-select" id="flt-{{ flt.attribute_id }}" name="{{ flt.param_key }}">
+                                    <option value="">Любое</option>
+                                    {% if 1 in flt.bool_values %}
+                                        <option value="1" {% if flt.selected == '1' %}selected{% endif %}>Да</option>
+                                    {% endif %}
+                                    {% if 0 in flt.bool_values %}
+                                        <option value="0" {% if flt.selected == '0' %}selected{% endif %}>Нет</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    <div class="category-filters-actions">
+                        <button type="submit" class="button-primary">Применить</button>
+                        <a href="{% url 'category_detail' category.id_category %}" class="btn btn-light">Сбросить</a>
+                    </div>
+                </div>
+            </form>
+        </aside>
+        <div class="category-products-area">
+            <div class="products-grid">
+                {% if products %}
+                    {% for product in products %}
+                        <a href="{% url 'product_detail' product.id_product %}" class="product-card-link">
+                            <div class="product-card">
+                                <div class="product-image">
+                                    {% if product.image_url %}
+                                        <img src="{{ product.image_url }}" alt="{{ product.product_name }}">
+                                    {% else %}
+                                        <div class="no-image">Нет фото</div>
+                                    {% endif %}
+                                </div>
+                                <div class="product-cat-label">{{ product.id_category.category_name }}</div>
+                                <h3 class="product-name">{{ product.product_name }}</h3>
+                                <p class="product-price">{{ product.price }} ₽</p>
+                                <div class="btn-buy">КУПИТЬ</div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <p>В этой категории пока нет товаров.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="page-heading mb-4">
+    <h1>Корзина</h1>
+</div>
+
+{% if cart_items %}
+<div class="cart-page">
+    <div class="cart-items">
+        {% for item in cart_items %}
+        <div class="cart-item">
+            <div class="cart-item-image">
+                {% if item.id_product.image_url %}
+                    <img src="{{ item.id_product.image_url }}" alt="{{ item.id_product.product_name }}">
+                {% else %}
+                    <div class="no-image">Нет изображения</div>
+                {% endif %}
+            </div>
+            <div class="cart-item-details">
+                <h2>{{ item.id_product.product_name }}</h2>
+                <p>Цена: {{ item.id_product.price }} ₽</p>
+                <div class="cart-item-actions">
+                    <div class="quantity-control">
+                        <form method="post" action="{% url 'update_cart_item' item.id_product.id_product %}" class="quantity-control-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="decrease">
+                            <input type="hidden" name="next" value="{% url 'cart' %}">
+                            <button type="submit" class="quantity-btn">−</button>
+                        </form>
+                        <span class="quantity-value">{{ item.quantity }}</span>
+                        <form method="post" action="{% url 'update_cart_item' item.id_product.id_product %}" class="quantity-control-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="increase">
+                            <input type="hidden" name="next" value="{% url 'cart' %}">
+                            <button
+                                type="submit"
+                                class="quantity-btn quantity-btn-plus {% if item.quantity >= item.id_product.stock_quantity %}quantity-btn-disabled{% endif %}"
+                                {% if item.quantity >= item.id_product.stock_quantity %}disabled{% endif %}
+                            >
+                                +
+                            </button>
+                        </form>
+                    </div>
+                    <form method="post" action="{% url 'update_cart_item' item.id_product.id_product %}" onsubmit="return confirm('Точно удалить товар из корзины?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="next" value="{% url 'cart' %}">
+                        <button type="submit" class="cart-remove-btn">Удалить</button>
+                    </form>
+                </div>
+            </div>
+            <div class="cart-item-total">
+                <span>{{ item.item_total }} ₽</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <aside class="cart-summary">
+        <div class="summary-card">
+            <h2>Итого</h2>
+            <div class="summary-row">
+                <span>Товары</span>
+                <span>{{ cart_item_count }} шт.</span>
+            </div>
+            <div class="summary-row">
+                <span>Доставка</span>
+                <span class="text-primary">Бесплатно</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-total">
+                <span>К оплате</span>
+                <strong>{{ total_cost }} ₽</strong>
+            </div>
+            <a href="{% url 'checkout' %}" class="button-primary">Оформить заказ →</a>
+        </div>
+    </aside>
+</div>
+{% else %}
+<div class="alert alert-info empty-cart" role="alert">Ваша корзина пуста. Добавьте товар, чтобы продолжить оформление.</div>
+{% endif %}
+{% endblock %}

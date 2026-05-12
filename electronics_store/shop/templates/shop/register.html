@@ -1,0 +1,94 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="auth-page container py-4">
+    <div class="auth-card card border-0 shadow-sm mx-auto">
+        <div class="card-body p-4 p-md-5">
+        <h1 class="text-center">РЕГИСТРАЦИЯ</h1>
+        <p class="auth-subtitle">Введите данные для создания аккаунта</p>
+        <form method="post" class="auth-form" id="register-form">
+            {% csrf_token %}
+            <div class="auth-row">
+                <label class="form-label mb-1">Имя</label>
+                <input class="form-control" type="text" name="first_name" placeholder="Иван" required>
+            </div>
+            <div class="auth-row">
+                <label class="form-label mb-1">Фамилия</label>
+                <input class="form-control" type="text" name="last_name" placeholder="Иванов" required>
+            </div>
+            <div class="auth-row">
+                <label class="form-label mb-1">Телефон</label>
+                <input class="form-control" type="text" name="phone_number" placeholder="79991234567">
+            </div>
+            <div class="auth-row">
+                <label class="form-label mb-1">Email</label>
+                <input class="form-control" type="email" name="email" placeholder="example@mail.ru" required>
+            </div>
+            <div class="auth-row">
+                <label class="form-label mb-1">Пароль</label>
+                <div class="password-field">
+                    <input class="form-control" id="register-password" type="password" name="password" placeholder="••••••••" required>
+                    <button type="button" id="toggle-register-password" class="password-toggle" aria-label="Показать пароль">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="auth-row">
+                <label class="form-label mb-1">Подтверждение пароля</label>
+                <div class="password-field">
+                    <input class="form-control" id="register-confirm-password" type="password" name="confirm_password" placeholder="••••••••" required>
+                    <button type="button" id="toggle-register-confirm-password" class="password-toggle" aria-label="Показать пароль">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="button-primary">Зарегистрироваться</button>
+        </form>
+        <p class="auth-note">После регистрации мы отправим ссылку для подтверждения аккаунта.</p>
+        <p class="auth-login">Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
+        </div>
+    </div>
+</div>
+<script>
+    (function () {
+        function bindToggle(buttonId, inputId) {
+            const button = document.getElementById(buttonId);
+            const input = document.getElementById(inputId);
+            if (!button || !input) return;
+            button.addEventListener('click', function () {
+                const isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+                button.innerHTML = isHidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+            });
+        }
+
+        bindToggle('toggle-register-password', 'register-password');
+        bindToggle('toggle-register-confirm-password', 'register-confirm-password');
+
+        const form = document.getElementById('register-form');
+        const password = document.getElementById('register-password');
+        const confirmPassword = document.getElementById('register-confirm-password');
+        if (!form || !password || !confirmPassword) return;
+
+        function validatePasswordMatch() {
+            if (password.value && confirmPassword.value && password.value !== confirmPassword.value) {
+                confirmPassword.setCustomValidity('Пароли не совпадают.');
+            } else {
+                confirmPassword.setCustomValidity('');
+            }
+        }
+
+        password.addEventListener('input', validatePasswordMatch);
+        confirmPassword.addEventListener('input', validatePasswordMatch);
+
+        form.addEventListener('submit', function (event) {
+            validatePasswordMatch();
+            if (password.value !== confirmPassword.value) {
+                event.preventDefault();
+                confirmPassword.reportValidity();
+                confirmPassword.focus();
+            }
+        });
+    })();
+</script>
+{% endblock %}
